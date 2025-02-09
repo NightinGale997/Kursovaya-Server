@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const firebaseAuth = require('../middleware/auth');
 const imageService = require('../services/imageService');
+const yandexDiskService = require('../services/yandexDiskService');
 
 /**
  * GET /images/random

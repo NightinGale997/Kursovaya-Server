@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const firebaseAuth = require('../middleware/auth');
 const guessService = require('../services/guessService');
+const prisma = require('../config/prisma');
 
 /**
  * POST /guesses
