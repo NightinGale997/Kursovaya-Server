@@ -21,4 +21,18 @@ router.get('/random', firebaseAuth, async (req, res) => {
   }
 });
 
+/**
+ * POST /images/sync
+ * Запускает процесс обновления картинок с Яндекс.Диска вручную.
+ */
+router.post('/sync', firebaseAuth, async (req, res) => {
+  try {
+    await yandexDiskService.updateImagesAsync();
+    return res.json({ message: 'Синхронизация с Яндекс.Диском завершена' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Ошибка при синхронизации' });
+  }
+});
+
 module.exports = router;

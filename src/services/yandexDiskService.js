@@ -15,38 +15,62 @@ class YandexDiskService {
    */
   async updateImagesAsync() {
     try {
-      const datasetPath = 'dataset'; // в дизайне path=dataset
-      const url = `${YANDEX_API_ENDPOINT}?path=${datasetPath}&limit=1000`;
-      const response = await axios.get(url, {
-        headers: {
-          Authorization: `OAuth ${this.token}`,
-        },
-      });
+      const datasetPath = 'dataset';
+      const limit = 100;        // Сколько записей берем за один запрос
+      let offset = 0;          // Смещение в списке
+      let hasMore = true;      // Флаг, что есть ещё страницы
 
-      const items = response.data._embedded.items || [];
-      for (const item of items) {
-        // допустим, item.name = 'abc.jpg'
-        const name = item.name.split('.')[0]; // отрезаем расширение
+      while (hasMore) {
+        // Формируем URL c limit и offset
+        const url = `${YANDEX_API_ENDPOINT}?path=${datasetPath}&limit=${limit}&offset=${offset}`;
 
-        // проверяем, есть ли уже такое изображение в БД
-        const existing = await prisma.image.findUnique({
-          where: { id: name },
+        const response = await axios.get(url, {
+          headers: {
+            Authorization: `OAuth ${this.token}`,
+          },
         });
-        if (!existing) {
-          // предположим, что для превью используем preview URL:
-          // item.preview или item.<что-то>
-          // Но в Яндекс.Диске есть отдельный массив preview
-          // Для примера возьмём item.preview по аналогии:
-          const previewUrl = item.preview || ''; 
 
-          await prisma.image.create({
-            data: {
-              id: name,
-              imgPreview: previewUrl,
-            },
+        // Извлекаем массив с элементами
+        const items = response.data?._embedded?.items || [];
+
+        // Если items пуст, значит достигли конца
+        if (items.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        // Обрабатываем каждый item
+        for (const item of items) {
+          // item.name = 'abc.jpg' -> 'abc'
+          const name = item.name.split('.')[0];
+
+          const existing = await prisma.image.findUnique({
+            where: { id: name },
           });
+
+          if (!existing) {
+            // Предположим, берем preview из поля preview
+            const previewUrl = item.preview || '';
+
+            await prisma.image.create({
+              data: {
+                id: name,
+                imgPreview: previewUrl,
+              },
+            });
+          }
+        }
+
+        // Увеличиваем offset на число полученных элементов
+        offset += items.length;
+
+        // Если вернулось меньше, чем limit — значит, дальше ничего нет
+        if (items.length < limit) {
+          hasMore = false;
         }
       }
+
+      console.log('Синхронизация с Яндекс.Диском завершена');
     } catch (error) {
       console.error('Ошибка при обновлении изображений с Яндекс.Диска:', error);
     }

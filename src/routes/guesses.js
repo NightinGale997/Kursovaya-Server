@@ -23,4 +23,22 @@ router.post('/', firebaseAuth, async (req, res) => {
   }
 });
 
+/**
+ * GET /guesses/all
+ * Возвращает полный список записей из таблицы Guesses
+ */
+router.get('/all', firebaseAuth, async (req, res) => {
+  try {
+    const allGuesses = await prisma.guess.findMany({
+      // Можно подгрузить связанные данные (User, Image),
+      // если нужно, через include:
+      // include: { user: true, image: true }
+    });
+    return res.json(allGuesses);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Ошибка при получении guesses' });
+  }
+});
+
 module.exports = router;
